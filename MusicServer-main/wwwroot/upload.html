@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subir Música</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+      margin-top: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      padding: 10px 14px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #555; }
+
+    .btn {
+      width: 100%;
+      margin-top: 24px;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-danger  { background: #1a1a1a; color: #888; border: 1px solid #2a2a2a; margin-top: 10px; }
+
+    .drop-zone {
+      margin-top: 16px;
+      border: 2px dashed #2a2a2a;
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #7c3aed;
+      background: #1e1530;
+    }
+
+    .drop-zone input { display: none; }
+
+    .drop-icon { font-size: 32px; margin-bottom: 8px; }
+
+    .drop-text { font-size: 14px; color: #888; }
+    .drop-text span { color: #7c3aed; }
+
+    .file-selected { font-size: 13px; color: #a78bfa; margin-top: 8px; }
+
+    .hint {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    code {
+      background: #0f0f0f;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: monospace;
+      color: #a78bfa;
+    }
+
+    .progress-wrap {
+      margin-top: 20px;
+      background: #0f0f0f;
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #7c3aed;
+      border-radius: 99px;
+      transition: width 0.2s;
+    }
+
+    .status {
+      margin-top: 16px;
+      font-size: 14px;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: none;
+    }
+
+    .status.info    { background: #1e2a3a; color: #60a5fa; display: block; }
+    .status.success { background: #1a2e1a; color: #4ade80; display: block; }
+    .status.error   { background: #2e1a1a; color: #f87171; display: block; }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0f0f0f;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .user-bar strong { color: #a78bfa; }
+
+    .logout-btn {
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 12px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .logout-btn:hover { color: #f87171; }
+  </style>
+</head>
+<body>
+<div class="card">
+
+  <!-- LOGIN -->
+  <div id="login-section">
+    <h1>Subir Música</h1>
+    <p class="subtitle">Iniciá sesión para subir tu música al servidor.</p>
+
+    <form onsubmit="login(); return false;">
+    <label>Usuario</label>
+    <input type="text" id="username" placeholder="tu_usuario" autocomplete="username">
+
+    <label>Contraseña</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+
+    <button type="submit" class="btn btn-primary" id="login-btn">Iniciar sesión</button>
+    </form>
+
+    <div class="status" id="login-status"></div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="upload-section" hidden>
+    <div class="user-bar">
+      Conectado como <strong id="uname-display"></strong>
+      <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
+    </div>
+
+    <h1>Subir Música</h1>
+    <p class="subtitle">Subí un ZIP con la estructura correcta de carpetas.</p>
+
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+      <input type="file" id="file-input" accept=".zip" onchange="onFileChange(event)">
+      <div class="drop-icon">🎵</div>
+      <div class="drop-text">Arrastrá tu ZIP acá o <span>hacé clic para elegir</span></div>
+      <div class="file-selected" id="file-name"></div>
+    </div>
+
+    <div class="hint">
+      Estructura esperada dentro del ZIP:<br>
+      <code>Artista/Album/cancion.mp3</code><br><br>
+      Formatos: <code>mp3 flac m4a aac ogg wav</code>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="upload()" id="upload-btn">Subir</button>
+
+    <div class="status" id="upload-status"></div>
+  </div>
+
+</div>
+
+<script>
+  const BASE = '';
+  let token = localStorage.getItem('ms_token');
+  let storedUser = localStorage.getItem('ms_user');
+  let selectedFile = null;
+
+  if (token) showUploadSection();
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  async function login() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    if (!u || !p) return setStatus('login-status', 'Completá usuario y contraseña.', 'error');
+
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Ingresando...';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, password: p })
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus('login-status', data.error || 'Error al iniciar sesión.', 'error'); return; }
+
+      token = data.token;
+      storedUser = u;
+      localStorage.setItem('ms_token', token);
+      localStorage.setItem('ms_user', u);
+      showUploadSection();
+    } catch {
+      setStatus('login-status', 'No se pudo conectar al servidor.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Iniciar sesión';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('ms_token');
+    localStorage.removeItem('ms_user');
+    token = null;
+    document.getElementById('upload-section').hidden = true;
+    document.getElementById('login-section').hidden = false;
+    selectedFile = null;
+  }
+
+  function showUploadSection() {
+    document.getElementById('login-section').hidden = true;
+    document.getElementById('upload-section').hidden = false;
+    document.getElementById('uname-display').textContent = storedUser || '';
+  }
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+
+  function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+  function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+  function onDrop(e) {
+    e.preventDefault();
+    onDragLeave();
+    const f = e.dataTransfer.files[0];
+    if (f) setFile(f);
+  }
+  function onFileChange(e) { if (e.target.files[0]) setFile(e.target.files[0]); }
+
+  function setFile(f) {
+    selectedFile = f;
+    document.getElementById('file-name').textContent = `📁 ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`;
+  }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+
+  const CHUNK_SIZE = 50 * 1024 * 1024; // 50 MB
+
+  async function upload() {
+    if (!selectedFile) return setStatus('upload-status', 'Seleccioná un archivo ZIP primero.', 'error');
+
+    const btn         = document.getElementById('upload-btn');
+    const progressWrap = document.getElementById('progress-wrap');
+    const progressFill = document.getElementById('progress-fill');
+
+    btn.disabled = true;
+    btn.textContent = 'Subiendo...';
+    progressWrap.style.display = 'block';
+    progressFill.style.width = '0%';
+
+    const uploadId    = crypto.randomUUID().replace(/-/g, '');
+    const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+
+    try {
+      for (let i = 0; i < totalChunks; i++) {
+        const start  = i * CHUNK_SIZE;
+        const end    = Math.min(start + CHUNK_SIZE, selectedFile.size);
+        const chunk  = selectedFile.slice(start, end);
+
+        const form = new FormData();
+        form.append('uploadId',    uploadId);
+        form.append('chunkIndex',  i);
+        form.append('totalChunks', totalChunks);
+        form.append('file', chunk, 'chunk.bin');
+
+        const res = await fetch('/api/upload/chunk', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: form
+        });
+
+        if (res.status === 401) { logout(); return; }
+
+        const pct = Math.round((i + 1) / totalChunks * 100);
+        progressFill.style.width = pct + '%';
+        setStatus('upload-status',
+          `Subiendo parte ${i + 1} de ${totalChunks}... ${pct}%`, 'info');
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Error en chunk ${i}`);
+        }
+
+        // Último chunk — servidor devuelve el resumen final
+        if (i === totalChunks - 1) {
+          const data = await res.json();
+          progressFill.style.width = '100%';
+          setStatus('upload-status',
+            `✓ ${data.files} canciones subidas en ${data.artists} artista(s) y ${data.albums} álbum(s).`,
+            'success');
+          selectedFile = null;
+          document.getElementById('file-name').textContent = '';
+          document.getElementById('file-input').value = '';
+        }
+      }
+    } catch (e) {
+      setStatus('upload-status', e.message || 'Error al subir.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Subir';
+    }
+  }
+
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = 'status ' + type;
+  }
+</script>
+</body>
+</html>

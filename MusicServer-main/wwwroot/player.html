@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MusicServer</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0f0f0f;--card:#1a1a1a;--border:#252525;--accent:#7c3aed;--text:#e0e0e0;--muted:#555;--hover:#222}
+    html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+
+    /* ── Login ── */
+    #login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:99}
+    .login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:360px}
+    .login-card h1{font-size:20px;margin-bottom:6px}
+    .login-card p{color:var(--muted);margin-bottom:24px;font-size:13px}
+    label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px}
+    input[type=text],input[type=password]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 12px;font-size:14px;outline:none}
+    input:focus{border-color:#444}
+    .btn{width:100%;margin-top:20px;padding:11px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:var(--accent);color:#fff;transition:opacity .15s}
+    .btn:hover{opacity:.85}
+    .err{margin-top:12px;font-size:13px;color:#f87171;display:none}
+
+    /* ── Layout ── */
+    #app{display:none;height:100vh;flex-direction:column}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .topbar-title{font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+    .topbar-right{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+    .logout-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+    .logout-btn:hover{color:#f87171;border-color:#f87171}
+
+    .panels{display:flex;flex:1;overflow:hidden}
+
+    /* Sidebar artistas */
+    .sidebar{width:220px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+    .sidebar-section{padding:12px 16px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .list-item{padding:9px 16px;cursor:pointer;border-radius:0;transition:background .1s;display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .list-item:hover{background:var(--hover)}
+    .list-item.active{background:#1e1530;color:#a78bfa;font-weight:600}
+    .list-item .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;display:none}
+    .list-item.active .dot{display:block}
+
+    /* Panel central álbumes + tracks */
+    .main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+    .albums-row{display:flex;gap:12px;padding:20px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+    .album-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;min-width:140px;transition:border-color .15s}
+    .album-card:hover{border-color:#444}
+    .album-card.active{border-color:var(--accent);background:#1e1530}
+    .album-name{font-weight:600;font-size:13px;margin-bottom:3px}
+    .album-count{font-size:12px;color:var(--muted)}
+    .tracks-list{flex:1;padding:0 20px 100px}
+    .track-row{display:flex;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .1s;gap:12px}
+    .track-row:hover{background:var(--hover)}
+    .track-row.playing{background:#1e1530;color:#a78bfa}
+    .track-num{width:24px;text-align:right;color:var(--muted);font-size:12px;flex-shrink:0}
+    .track-row.playing .track-num{color:var(--accent)}
+    .track-info{flex:1;overflow:hidden}
+    .track-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+    .track-album-name{font-size:12px;color:var(--muted)}
+    .fav-btn{background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);padding:4px;flex-shrink:0}
+    .fav-btn.active{color:#f472b6}
+    .empty{padding:40px 20px;color:var(--muted);text-align:center}
+
+    /* ── Player bar ── */
+    .player-bar{height:72px;border-top:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 20px;flex-shrink:0;background:var(--card)}
+    .track-meta{width:220px;flex-shrink:0;overflow:hidden}
+    .track-meta .title{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .track-meta .sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .controls{display:flex;align-items:center;gap:12px}
+    .ctrl-btn{background:none;border:none;color:var(--text);cursor:pointer;font-size:20px;padding:4px;line-height:1}
+    .ctrl-btn:hover{color:#fff}
+    .play-btn{font-size:28px}
+    .progress-area{flex:1;display:flex;align-items:center;gap:10px}
+    .time{font-size:12px;color:var(--muted);width:38px;text-align:center;flex-shrink:0}
+    .progress-track{flex:1;height:4px;background:#333;border-radius:4px;cursor:pointer;position:relative}
+    .progress-fill{height:100%;background:var(--accent);border-radius:4px;pointer-events:none;max-width:100%}
+    .vol-area{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .vol-icon{font-size:16px;cursor:pointer;color:var(--muted)}
+    .vol-slider{width:80px;accent-color:var(--accent)}
+
+    ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-card">
+    <h1>🎵 MusicServer</h1>
+    <p>Iniciá sesión para escuchar tu música.</p>
+    <form onsubmit="login();return false">
+      <label>Usuario</label>
+      <input type="text" id="u" autocomplete="username" placeholder="usuario">
+      <label>Contraseña</label>
+      <input type="password" id="p" autocomplete="current-password" placeholder="••••••••">
+      <button type="submit" class="btn" id="login-btn">Entrar</button>
+    </form>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;height:100vh;flex-direction:column;display:none">
+
+  <div class="topbar">
+    <div class="topbar-title">🎵 MusicServer</div>
+    <div class="topbar-right">
+      <span id="username-label"></span>
+      <button class="logout-btn" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="panels">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">Artistas</div>
+      <div id="artist-list"></div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="albums-row" id="albums-row"><div class="empty">← Seleccioná un artista</div></div>
+      <div class="tracks-list" id="tracks-list"></div>
+    </div>
+  </div>
+
+  <!-- Player -->
+  <div class="player-bar">
+    <div class="track-meta">
+      <div class="title" id="now-title">—</div>
+      <div class="sub"   id="now-sub"></div>
+    </div>
+    <div class="controls">
+      <button class="ctrl-btn" onclick="playPrev()" title="Anterior">⏮</button>
+      <button class="ctrl-btn play-btn" id="play-btn" onclick="togglePlay()">▶</button>
+      <button class="ctrl-btn" onclick="playNext()" title="Siguiente">⏭</button>
+    </div>
+    <div class="progress-area">
+      <span class="time" id="cur-time">0:00</span>
+      <div class="progress-track" id="prog-track" onclick="seek(event)">
+        <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+      </div>
+      <span class="time" id="dur-time">0:00</span>
+    </div>
+    <div class="vol-area">
+      <span class="vol-icon">🔊</span>
+      <input type="range" class="vol-slider" id="vol" min="0" max="1" step="0.02" value="1" oninput="audio.volume=this.value">
+    </div>
+  </div>
+</div>
+
+<audio id="audio-el"></audio>
+
+<script>
+const audio = document.getElementById('audio-el');
+let token = localStorage.getItem('ms_token');
+let uname = localStorage.getItem('ms_user');
+let artists=[], currentArtist=null, albums=[], currentAlbum=null;
+let queue=[], queueIndex=-1, favorites=new Set();
+
+if (token) initApp();
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+
+async function login() {
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  if (!u||!p) return;
+  const btn = document.getElementById('login-btn');
+  btn.disabled=true; btn.textContent='Entrando...';
+  try {
+    const r = await api('POST','/api/auth/login',{username:u,password:p},false);
+    token = r.token; uname = u;
+    localStorage.setItem('ms_token',token);
+    localStorage.setItem('ms_user',uname);
+    initApp();
+  } catch(e) {
+    showErr(e.message||'Usuario o contraseña incorrectos.');
+  } finally { btn.disabled=false; btn.textContent='Entrar'; }
+}
+
+function logout() {
+  audio.pause();
+  localStorage.removeItem('ms_token'); localStorage.removeItem('ms_user');
+  token=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login').style.display='flex';
+}
+
+function showErr(msg){ const e=document.getElementById('err'); e.textContent=msg; e.style.display='block'; }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+
+async function initApp() {
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('username-label').textContent=uname||'';
+  const [arts, favs] = await Promise.all([
+    api('GET','/api/music/artists'),
+    api('GET','/api/user/favorites')
+  ]);
+  artists = arts;
+  favorites = new Set((favs||[]).map(t=>t.id));
+  renderArtists();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+
+function renderArtists() {
+  const el = document.getElementById('artist-list');
+  el.innerHTML = artists.map(a=>`
+    <div class="list-item${currentArtist?.id===a.id?' active':''}" onclick="selectArtist('${a.id}')">
+      <span class="dot"></span>${esc(a.name)}
+    </div>`).join('');
+}
+
+async function selectArtist(id) {
+  currentArtist = artists.find(a=>a.id===id);
+  currentAlbum  = null;
+  albums = await api('GET',`/api/music/artists/${id}/albums`);
+  renderArtists();
+  renderAlbums();
+  document.getElementById('tracks-list').innerHTML='';
+}
+
+function renderAlbums() {
+  const el = document.getElementById('albums-row');
+  if (!albums.length){ el.innerHTML='<div class="empty">Sin álbumes</div>'; return; }
+  el.innerHTML = albums.map(a=>`
+    <div class="album-card${currentAlbum?.id===a.id?' active':''}" onclick="selectAlbum('${a.id}')">
+      <div class="album-name">${esc(a.name)}</div>
+    </div>`).join('');
+}
+
+async function selectAlbum(id) {
+  currentAlbum = albums.find(a=>a.id===id);
+  const tracks = await api('GET',`/api/music/albums/${id}/tracks`);
+  queue = tracks;
+  renderAlbums();
+  renderTracks(tracks);
+}
+
+function renderTracks(tracks) {
+  const el = document.getElementById('tracks-list');
+  if (!tracks.length){ el.innerHTML='<div class="empty">Sin canciones</div>'; return; }
+  el.innerHTML = tracks.map((t,i)=>`
+    <div class="track-row${queueIndex===i&&currentAlbum?.id===queue[0]?.albumId?' playing':''}" id="tr-${t.id}" ondblclick="playTrack(${i})">
+      <span class="track-num">${i+1}</span>
+      <div class="track-info">
+        <div class="track-title">${esc(t.title)}</div>
+      </div>
+      <button class="fav-btn${favorites.has(t.id)?' active':''}" onclick="toggleFav(event,'${t.id}')">${favorites.has(t.id)?'♥':'♡'}</button>
+    </div>`).join('');
+}
+
+// ── Playback ───────────────────────────────────────────────────────────────
+
+function playTrack(index) {
+  queueIndex = index;
+  const t = queue[index];
+  if (!t) return;
+  audio.src = `/api/music/tracks/${t.id}/stream?token=${token}`;
+  audio.play();
+  document.getElementById('play-btn').textContent='⏸';
+  document.getElementById('now-title').textContent=t.title;
+  document.getElementById('now-sub').textContent=`${t.artistName} · ${t.albumName}`;
+  document.querySelectorAll('.track-row').forEach((r,i)=>r.classList.toggle('playing',i===index));
+  api('POST',`/api/user/played/${t.id}`);
+}
+
+function togglePlay() {
+  if (!audio.src) return;
+  if (audio.paused) { audio.play(); document.getElementById('play-btn').textContent='⏸'; }
+  else              { audio.pause(); document.getElementById('play-btn').textContent='▶'; }
+}
+
+function playNext() { if (queueIndex<queue.length-1) playTrack(queueIndex+1); }
+function playPrev() { if (audio.currentTime>3) { audio.currentTime=0; } else if (queueIndex>0) playTrack(queueIndex-1); }
+
+audio.addEventListener('ended',    playNext);
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  document.getElementById('prog-fill').style.width=(audio.currentTime/audio.duration*100)+'%';
+  document.getElementById('cur-time').textContent=fmt(audio.currentTime);
+  document.getElementById('dur-time').textContent=fmt(audio.duration);
+});
+audio.addEventListener('pause', ()=>{ document.getElementById('play-btn').textContent='▶'; });
+audio.addEventListener('play',  ()=>{ document.getElementById('play-btn').textContent='⏸'; });
+
+function seek(e) {
+  const r=document.getElementById('prog-track').getBoundingClientRect();
+  audio.currentTime=(e.clientX-r.left)/r.width*audio.duration;
+}
+
+// ── Favorites ──────────────────────────────────────────────────────────────
+
+async function toggleFav(e, trackId) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  if (favorites.has(trackId)) {
+    await api('DELETE',`/api/user/favorites/${trackId}`);
+    favorites.delete(trackId);
+    btn.textContent='♡'; btn.classList.remove('active');
+  } else {
+    await api('POST',`/api/user/favorites/${trackId}`);
+    favorites.add(trackId);
+    btn.textContent='♥'; btn.classList.add('active');
+  }
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+
+async function api(method, url, body=null, auth=true) {
+  const opts = { method, headers:{'Content-Type':'application/json'} };
+  if (auth) opts.headers['Authorization']='Bearer '+token;
+  if (body) opts.body=JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (r.status===401) { logout(); throw new Error('Sesión expirada.'); }
+  if (!r.ok) { const e=await r.json().catch(()=>{}); throw new Error(e?.error||r.statusText); }
+  return r.json();
+}
+
+function fmt(s) {
+  s=Math.floor(s||0);
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Teclado
+document.addEventListener('keydown', e => {
+  if (['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.code==='Space') { e.preventDefault(); togglePlay(); }
+  if (e.code==='ArrowRight') playNext();
+  if (e.code==='ArrowLeft')  playPrev();
+});
+</script>
+</body>
+</html>
